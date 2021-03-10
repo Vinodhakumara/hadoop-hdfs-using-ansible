@@ -1,0 +1,75 @@
+- hosts:  Client
+  gather_facts: false
+  vars_files:
+  - vars.yml
+  vars:
+  - blocks: "1024"
+  - replicas: "3"
+  
+  tasks:
+  - debug: 
+     msg: "{{ namenodeIP }}"
+  # Copy Hadoop and JDK files to a target nodes
+  - name: "Copy Hadoop file"
+    copy:
+     src: "/root/hadoop-1.2.1-1.x86_64.rpm"
+     dest: "/root/"
+  - name: "Copy JDK file"
+    copy:
+     src: "/root/jdk-8u171-linux-x64.rpm"
+     dest: "/root/"
+  # Check whether Hadoop and JDK is present or not 
+  - name: "Check whether Hadoop exists"
+    package:
+     name: "hadoop"
+     state: present
+    register: x
+    # if error occur means Dosnot exist 
+    ignore_errors: yes
+  - name: "Check whether JDK exists"
+    package:
+     name: "java"
+     state: present
+    register: y
+    ignore_errors: yes
+  # Install Hadoop and JDK files using Command 
+  - name: "Install Hadoop"
+    command: "rpm -ivh hadoop-1.2.1-1.x86_64.rpm --force"
+    when: x.rc == 1
+  - name: "Install JDK"
+    command: "rpm -ivh jdk-8u171-linux-x64.rpm"
+    when: y.rc == 1
+  # Copy hdfs and core files
+  - name: "Configure HDFS file"
+    template:
+     src: "core-site.xml.j2"
+     dest: "/etc/hadoop/core-site.xml"
+  - name: "Configure CORE file"
+    template:
+     src: "hdfs-site-client.xml.j2"
+     dest: "/etc/hadoop/hdfs-site.xml"
+  - name: " Create a file"
+    file:
+     path: "/new.txt"
+     state: touch
+    
+  - copy:
+     content: "Hi this is Client file"
+     dest: "/client.txt"
+
+  - name: "Check file exists or not"
+    command: "hadoop fs -ls /client.txt"
+    register: fileCheck
+    ignore_errors: yes
+  # Share data 
+  - name: "Upload file into Hadoop/hdfs cluster"
+    command: "hadoop fs -put /client.txt /"
+    register: data
+    when: fileCheck.rc > 0
+
+  - debug:
+     var: data
+
+  
+
+  

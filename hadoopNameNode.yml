@@ -1,0 +1,85 @@
+- hosts: Name
+  gather_facts: false 
+  vars_files:
+  - vars.yml
+  vars:
+  - node: "name"
+  - directory: "namenode"
+  
+  tasks:
+  - file:
+     path: "/{{ directory }}"
+     state: directory 
+  - debug: 
+     msg: "{{ namenodeIP }}"
+  # Copy Hadoop and JDK files to a target nodes
+  - name: "Copy Hadoop file"
+    copy:
+     src: "/root/hadoop-1.2.1-1.x86_64.rpm"
+     dest: "/root/"
+  - name: "Copy JDK file"
+    copy:
+     src: "/root/jdk-8u171-linux-x64.rpm"
+     dest: "/root/"
+  # Check whether Hadoop and JDK is present or not 
+  - name: "Check whether Hadoop"
+    package:
+     name: "hadoop"
+     state: present
+    register: x
+    # if error occur means Dosnot exist 
+    ignore_errors: yes
+  - name: "Check whether JDK"
+    package:
+     name: "java"
+     state: present
+    register: y
+    ignore_errors: yes
+  # Install Hadoop and JDK files using Command 
+  - name: "Install Hadoop"
+    command: "rpm -ivh hadoop-1.2.1-1.x86_64.rpm --force"
+    when: x.rc == 1
+  - name: "Install JDK"
+    command: "rpm -ivh jdk-8u171-linux-x64.rpm"
+    when: y.rc == 1
+  # Copy hdfs and core files
+  - name: "Copy core file"
+    template:
+     src: "core-site.xml.j2"
+     dest: "/etc/hadoop/core-site.xml"
+  - name: "Copy HDFS file"
+    template:
+     src: "hdfs-site.xml.j2"
+     dest: "/etc/hadoop/hdfs-site.xml"
+  # Enable port number
+  - name: "Enabling firewall daimon of {{ port }} port and accesss permamnent"
+    firewalld:
+     port: "{{ port }}/tcp"
+     state: enabled
+     permanent: yes
+     immediate: yes
+
+  # Format Namenode 
+  - pause:
+     prompt: "Do you wants to Format MetaData in Namenode (yes/no)"
+    register: format
+  - name: "Format Namenode"
+    command: "echo Y | hadoop namenode -format"
+    when: format.user_input | bool
+  - debug:
+     var: format.user_input
+  # Start NameNode 
+  - name: "Start Namenode"
+    command: "hadoop-daemon.sh start namenode"
+    register: start_namenode
+  - debug:
+     var: start_namenode
+  # JPS
+  - name: "JPS"
+    command: "jps"
+    register: jps_n
+  - debug:
+     var: jps_n
+  
+
+  
