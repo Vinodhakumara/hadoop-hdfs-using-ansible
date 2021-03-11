@@ -1,0 +1,67 @@
+# Hosts or other system
+- hosts: WebServer
+
+# Creation of variables
+  vars:
+    - services: "httpd"
+  tasks:
+# Installing a apche server if not present
+# ansible all -m package -a name=httpd state=present
+  - name: "Installing a apche server if not present"
+    package:
+     name: "{{ services }}"
+     state: present
+
+# Starting a webserver but its better to give as RESTART
+# ansible all -m service -a name=httpd state=restart enabled=yes
+  - name: "Starting a webserver"
+    service:
+     name: "{{ services }}"
+     state: started
+     enabled: yes
+   
+# Wrting Content to web file /var/www/html/index.html
+# ansible all -m copy -a dest=/var/www/html/index.html src=This is my ansible code
+  - name: "Content to web file"
+    copy:
+     dest: "/var/www/html/index.html"
+     content: "This is my ansible code\n"
+
+# Create a new directory to make a default web directory to other directory
+# ansible all -m file -a "state=directory path=/var/www/newHTML"
+  - name: "Create a new directory to make a default web directory to other directory"
+    file:
+     state: directory
+     path: "/var/www/newHTML"
+
+# Copy file which is configured to change PORT number
+# ansible all -m 
+  - name: "Configured to change PORT number"
+    copy:
+     src: "newHTML.conf"
+     dest: "/etc/httpd/conf.d/newHTML.conf"
+    notify: "Restart webserver"
+
+# Wrting Content to web file /var/www/newHTML/index.html
+# ansible all -m copy -a "dest=/var/www/newHTML/index.html src=This is my ansible code"
+  - name: "Content to web file /var/www/newHTML/index.html"
+    copy:
+     dest: "/var/www/newHTML/index.html"
+     content: "<h1 style='color:blue'>TASK 11.3</h1><h1 style='color:green'>Welcome to Ansible Automation</h1><h2 style='color:green'>This is my ansible code</h2>\n"
+
+# Enabling firewall daimon of 8080 port and accesss permamnent
+# ansible all -m firewalld -a "port=8080/tcp state=enabled permanent=yes immediate=yes"
+  - name: "Enabling firewall daimon of 82 port and accesss permamnent"
+    firewalld:
+     port: "84/tcp"
+     state: enabled
+     permanent: yes
+     immediate: yes
+    notify: "Restart webserver"
+
+# Restart Webserver once any configuration is done
+  handlers:
+    - name: "Restart webserver"
+      service: 
+        name: httpd
+        state: restarted
